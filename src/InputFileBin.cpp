@@ -197,6 +197,7 @@ Long64_t cu::InputFileBin::ReadEventFromStream(size_t i_strm, cu::Event& event)
 		-->> waveform points (UShort_t)
 	*/
   auto& pfs = fStreams.at(i_strm);
+	pfs->peek();
   if(!pfs->good()) {
     return -1;
   }
@@ -242,13 +243,11 @@ void cu::InputFileBin::InsertLocalBuffer(size_t i_stream)
 {
 	auto event = std::make_shared<cu::Event>();
   Long64_t nbytes = ReadEventFromStream(i_stream, *event);
-  if(nbytes != -1) 
-	{
+  if(nbytes != -1) {
 		fLocalBuffer.insert
 			(std::make_pair(event, std::make_pair(i_stream, nbytes)));
 	}
-  else
-	{
+  else {
 		++fDoneStreams;
 	}
 }
