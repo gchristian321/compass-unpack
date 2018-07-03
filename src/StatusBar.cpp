@@ -26,7 +26,7 @@ namespace { struct LG {
 	~LG(){ if(ROOT::gCoreMutex){ ROOT::gCoreMutex->UnLock(); } }
 }; }
 
-void compass_unpack::StatusBar::operator() ()
+void compass_unpack::StatusBar::operator() (long long niter)
 {
 	LG lg; // lock guard for thread safety
 	
@@ -36,7 +36,8 @@ void compass_unpack::StatusBar::operator() ()
     fFirstTime = false;
   }
 
-  int prcnt = (1000*fI++) / fImax;
+	fI += niter;
+  int prcnt = (1000*fI) / fImax;
   if(prcnt > fPrcntLast) {
     fPrcntLast = prcnt;
 
@@ -49,7 +50,7 @@ void compass_unpack::StatusBar::operator() ()
     std::cout << buf;
     std::flush(std::cout);
   }
-  if(fI == fImax) {
+  if(fI >= fImax) {
     std::cout << "\nDone!\n";
     return;
   }

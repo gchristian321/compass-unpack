@@ -7,8 +7,8 @@ class StatusBar {
 public:
 	StatusBar(long long MaxEntries = 0);  
 	void Reset(long long MaxEntries);
-	void operator() ();
-	void Incr() { (*this)(); }    
+	void operator() (long long n = 1);
+	void Incr(long long n) { (*this)(n); }    
 private:
 	long long fImax;
 	long long fI;
