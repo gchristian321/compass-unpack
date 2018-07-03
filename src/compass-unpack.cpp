@@ -3,8 +3,8 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
-#include <TVirtualRWMutex.h>
 #include "Event.hpp"
+#include "LockGuard.hpp"
 #include "StatusBar.hpp"
 #include "InputFileBin.hpp"
 #include "EventHandlerRoot.hpp"
@@ -24,11 +24,6 @@ namespace {
 struct CompareEventPointer {
 	bool operator()(const std::shared_ptr<Event>& l, const std::shared_ptr<Event>& r)
 		{ return *l < *r; }
-};
-
-struct LG {
-	LG() { if(ROOT::gCoreMutex){ ROOT::gCoreMutex->Lock();   } }
-	~LG(){ if(ROOT::gCoreMutex){ ROOT::gCoreMutex->UnLock(); } }
 };
 
 template<class T> Long64_t LengthInTime(const T& t)
@@ -67,16 +62,13 @@ int main()
 			if(nread == -1) {
 				break;
 			} else {
-				::LG lg;
+				cu::LockGuard lg;
 				assert(evtQueue.empty() || *(evtQueue.back()) < *evt);
 				evtQueue.push_back(evt);
 				++numread;
 			}
 		}
 		doneReading = true;
-		{
-			LG lg__;
-		}
 	};
 	auto readerThread = std::thread(readerLoop);
 
@@ -90,14 +82,14 @@ int main()
 		
 		while(true) {
 			if(doneReading) {
-				LG lg;
+				cu::LockGuard lg;
 				if(evtQueue.empty()) {
 					break;
 				}
 			}
 			std::vector<std::shared_ptr<Event> > matches;
 			{
-				LG lg;
+				cu::LockGuard lg;
 				if(doneReading || LengthInTime(evtQueue) > kMaxTime) {
 					Queue_t::iterator itBegin = evtQueue.begin();
 					Queue_t::iterator itEnd = evtQueue.begin();
