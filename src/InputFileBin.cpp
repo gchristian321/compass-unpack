@@ -240,8 +240,8 @@ Long64_t cu::InputFileBin::ReadEventFromStream(size_t i_strm, cu::Event& event)
 
 void cu::InputFileBin::InsertLocalBuffer(size_t i_stream)
 {
-  cu::Event event;
-  Long64_t nbytes = ReadEventFromStream(i_stream, event);
+	auto event = std::make_shared<cu::Event>();
+  Long64_t nbytes = ReadEventFromStream(i_stream, *event);
   if(nbytes != -1) 
 	{
 		fLocalBuffer.insert
@@ -253,7 +253,7 @@ void cu::InputFileBin::InsertLocalBuffer(size_t i_stream)
 	}
 }
 
-Long64_t cu::InputFileBin::ReadEvent(cu::Event& event)
+Long64_t cu::InputFileBin::ReadEvent(std::shared_ptr<cu::Event>& event)
 {
   // Need to make sure events are processed in
   // the order of their timestamps, which may be
@@ -282,13 +282,12 @@ Long64_t cu::InputFileBin::ReadEvent(cu::Event& event)
 
   assert(fLocalBuffer.empty() == false);
   assert(fLocalBuffer.size() + fDoneStreams == fStreams.size());
-
-  
+	
   // We now have a local buffer w/ events from every stream.
   // Process the earliest event.
 
-  // Set the output event to be the first one in the local buffer
-  event = fLocalBuffer.begin()->first;
+  // Set the output event to be the first one in the local
+	event = fLocalBuffer.begin()->first;
   
   // Now erase that event from the local buffer
   const size_t i_stream = fLocalBuffer.begin()->second.first;

@@ -1,6 +1,6 @@
 #ifndef CUNPACK_INPUT_FILE_HEADER
 #define CUNPACK_INPUT_FILE_HEADER
-#include <vector>
+#include <memory>
 #include <Rtypes.h>
 
 namespace compass_unpack {
@@ -12,7 +12,7 @@ namespace compass_unpack {
     InputFile() {}
     virtual ~InputFile() {}
 
-    virtual Long64_t ReadEvent(Event&) = 0;
+    virtual Long64_t ReadEvent(std::shared_ptr<Event>&) = 0;
     virtual Long64_t GetEventNumber() const = 0;
     virtual Long64_t GetTotalEvents() const = 0;
   };

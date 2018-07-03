@@ -1,7 +1,6 @@
 #ifndef CUNPACK_INPUT_FILE_BIN_HEADER
 #define CUNPACK_INPUT_FILE_BIN_HEADER
 #include <map>
-#include <memory>
 #include <vector>
 #include <string>
 #include <fstream>
@@ -18,7 +17,7 @@ namespace compass_unpack {
     InputFileBin(const std::string& run_directory);
     virtual ~InputFileBin();
 
-    virtual Long64_t ReadEvent(Event& event);
+    virtual Long64_t ReadEvent(std::shared_ptr<Event>& event);
     virtual Long64_t GetTotalEvents() const { return fSize;   }
     virtual Long64_t GetEventNumber() const { return fEventNo;}
 
@@ -37,8 +36,15 @@ namespace compass_unpack {
     std::vector<Strm_t>  fStreams;
 		std::vector<bool> fPSD;
     UInt_t fDoneStreams;
+		struct CompareEventPointer {
+			bool operator()(const std::shared_ptr<Event>& l, const std::shared_ptr<Event>& r)
+				{ return *l < *r; }
+		};
     // <Event, <stream indx, number of bytes read> >
-    std::map<Event, std::pair<size_t, Long64_t> > fLocalBuffer;
+    std::map<std::shared_ptr<Event>,
+						 std::pair<size_t, Long64_t>,
+						 CompareEventPointer>
+		fLocalBuffer;
   };
 
 }
