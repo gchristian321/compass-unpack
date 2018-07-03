@@ -35,10 +35,12 @@ private:
 
 public:
 	static void SetMatchWindow(Long64_t Window) { kMatchWindow = Window; }
-	static Long64_t GetMatchWindow() { return kMatchWindow;   } 
+	static Long64_t GetMatchWindow() { return kMatchWindow;   }
+	void Print() const;
+	
 private:
 	static std::atomic<Long64_t> kMatchWindow;
-
+	
 	friend class compass_unpack::InputFileBin;
 };
   

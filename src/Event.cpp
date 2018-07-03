@@ -13,6 +13,7 @@ cu::Event::Event():
   fEnergy(0),
   fEnergyShort(0),
   fTimestamp(0),
+	fFlags(0),
   fWaveform(0)
 {  }
 
@@ -29,4 +30,13 @@ bool cu::Event::operator< (const cu::Event& rhs) const
   if(lhs.fChannel != rhs.fChannel)
     { return lhs.fChannel < rhs.fChannel; }
   return false;
+}
+
+
+void cu::Event::Print() const
+{
+	std::cout << "EVENT: (board, channel, energy, energy short, " <<
+		"timestamp, flags, no. of waves): " <<
+		fBoard << ", " << fChannel << ", " << fEnergy << ", " << fEnergyShort << ", " <<
+		fTimestamp << ", " << fFlags << ", " << fWaveform.size() << "\n";
 }
