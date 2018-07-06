@@ -8,9 +8,13 @@ class TTreeMerger {
 public:
 	TTreeMerger(int nthreads,
 							const std::string& main_filename,
-							const std::string& tree_name);
+							const std::string& tree_name,
+							bool verbose = false);
 	~TTreeMerger() { Close(); }
 	void Close();
+	void Print();
+	bool GetVerbose() const { return fVerb; }
+	void SetVerbose(bool verb) { fVerb = verb; }
 public:
 	static std::string GetThreadDir
 	(const std::string& main_filename);
@@ -20,6 +24,7 @@ public:
 
 private:
 	bool fClosed;
+	bool fVerb;
 	int fNthreads;
 	std::string fFilename;
 	std::string fTreename;

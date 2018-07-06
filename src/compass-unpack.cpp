@@ -185,7 +185,7 @@ int main(int argc, char** argv)
 
 	std::thread readerThread (readerLoop);
 	std::vector<std::thread> handlerThread;
-	TTreeMerger treeMerger(nthreads,outputFile,treeName);
+	TTreeMerger treeMerger(nthreads,outputFile,treeName,true);
 
 	if(nthreads <= 1) {
 		handlerThread.push_back(std::thread(handlerLoop, -1));
