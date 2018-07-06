@@ -10,6 +10,7 @@
 #include "Event.hpp"
 #include "LockGuard.hpp"
 #include "StatusBar.hpp"
+#include "TTreeMerger.hpp"
 #include "InputFileBin.hpp"
 #include "EventHandlerRoot.hpp"
 
@@ -63,7 +64,9 @@ int main(int argc, char** argv)
 	int runnum,nthreads;
 	Long64_t kMatchWindow = 20e6;
 	Long64_t kMaxTime = 10e12;
-	std::string outFileBase;
+	std::string outputFile("matched.root");
+	std::string treeName("MatchedData");
+	std::string treeTitle("Matched CoMPASS Data");
 	
 	for(Json::Value::iterator it = config.begin();it!=config.end();it++) {
 		if(false) {  }
@@ -83,8 +86,13 @@ int main(int argc, char** argv)
 			kMaxTime = it->asInt()*1e12;
 		}
 		else if(it.key().asString() == "outputFile") {
-			std::string val = it->asString();
-			outFileBase = val.substr(0, val.size() - val.rfind(".root") - 1);
+			outputFile = it->asString();
+		}
+		else if(it.key().asString() == "outputTreeName") {
+			treeName = it->asString();
+		}
+		else if(it.key().asString() == "outputTreeTitle") {
+			treeTitle = it->asString();
 		}
 	}
 
@@ -92,9 +100,13 @@ int main(int argc, char** argv)
 		Form("%s/DAQ/run_%i", input_dir.c_str(), runnum);
 	std::string inputFileDir =
 		Form("%s/UNFILTERED", runDir.c_str());
-	std::string threadDir =
-		runDir + "/files_" + outFileBase + ".root";
 
+	if(std::string(gSystem->DirName(outputFile.c_str())) == ".") {
+		// no directory specified, put in run dir
+		std::string of = outputFile;
+		outputFile = runDir + "/" + of;
+	}
+	
 	cu::InputFileBin in(inputFileDir);
 	gStatusBar.Reset(in.GetTotalEvents());
 
@@ -125,12 +137,13 @@ int main(int argc, char** argv)
 
 	Long64_t eventNo = 0;
 	auto handlerLoop = [&](int n){
-		std::string fn = n < 0 ?
-		runDir + "/" + outFileBase + ".root" :
-		threadDir + Form("/thread-%i.root", n);
+		std::string fn = n < 0 ? outputFile :
+		TTreeMerger::GetThreadFile(n, outputFile);
 		
 		std::unique_ptr<EventHandler> handler
-		(new EventHandlerRoot(fn.c_str(),	"MatchedData", "Matched CoMPASS Data"));
+		(new EventHandlerRoot
+		 (fn.c_str(), treeName,	treeTitle));
+		
 		handler->BeginningOfRun();
 		
 		while(true) {
@@ -172,15 +185,13 @@ int main(int argc, char** argv)
 
 	std::thread readerThread (readerLoop);
 	std::vector<std::thread> handlerThread;
+	TTreeMerger treeMerger(nthreads,outputFile,treeName);
 
-
-	if(nthreads == 1) {
+	if(nthreads <= 1) {
 		handlerThread.push_back(std::thread(handlerLoop, -1));
 	}
 	else {
 		ROOT::EnableThreadSafety();
-		gSystem->Exec(Form("mkdir -p %s", threadDir.c_str()));
-
 		for(int i=0; i< nthreads; ++i){
 			handlerThread.push_back(std::thread(handlerLoop, i));
 		}
@@ -190,15 +201,6 @@ int main(int argc, char** argv)
 	std::cout << "\n----------- Unpacking Events (" << nthreads << " threads) -----------";
 	readerThread.join();
 	for (auto& ht : handlerThread) { ht.join(); }
-
-	if(nthreads > 1){
-		TFile f((runDir + "/" + outFileBase + ".root").c_str(), "recreate");
-		TChain * ch = new TChain("MatchedData");
-		for(int n=0; n< nthreads; ++n){
-			ch->AddFile((threadDir +  Form("/thread-%i.root", n)).c_str() );
-		}
-		ch->Write("MatchedData");
-	}
 	
 	std::cout << "\n\n----------- Summary -----------\n";
 	std::cout << "Events read: " << numread << "\n" <<
