@@ -32,6 +32,7 @@ void cu::EventHandlerRoot::BeginningOfRun()
   assert(fFile.get() && !(fFile->IsZombie()));
   fTree = new TTree(fTreename.c_str(), fTreetitle.c_str());
 
+	fTree->Branch("EventNo",  &fEventNo,  "EventNo/L");
   fTree->Branch("Board",    &vBoard);
   fTree->Branch("Channel",  &vChannel);
   fTree->Branch("Energy",   &vEnergy);
@@ -46,6 +47,7 @@ void cu::EventHandlerRoot::BeginningOfRun()
 void cu::EventHandlerRoot::BeginningOfEvent()
 {
   // Clear output vectors
+	fEventNo = -1;
   vBoard.clear();
   vChannel.clear();
   vEnergy.clear();
@@ -55,7 +57,7 @@ void cu::EventHandlerRoot::BeginningOfEvent()
 }
 
 Long64_t cu::EventHandlerRoot::HandleEvent
-(const std::vector<std::shared_ptr<Event> >& matches)
+(Long64_t eventNo, const std::vector<std::shared_ptr<Event> >& matches)
 {
   Int_t nWaves = 0; // number of waveforms graphs
 
@@ -82,6 +84,7 @@ Long64_t cu::EventHandlerRoot::HandleEvent
 			}
 		}
 	}
+	fEventNo = eventNo;
   return vEnergy.size();
 }
 

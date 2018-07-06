@@ -19,7 +19,8 @@ public:
 	virtual ~EventHandlerRoot();
 	virtual void BeginningOfRun();
 	virtual void BeginningOfEvent();
-	virtual Long64_t HandleEvent(const std::vector<std::shared_ptr<Event> >& matches);
+	virtual Long64_t HandleEvent
+	(Long64_t eventNo, const std::vector<std::shared_ptr<Event> >& matches);
 	virtual void EndOfEvent();
 	virtual void EndOfRun();
 
@@ -32,6 +33,7 @@ private:
 	std::unique_ptr<TFile> fFile;
 	TTree* fTree;
 
+	Long64_t fEventNo;
 	std::vector<UShort_t> vBoard;
 	std::vector<UShort_t> vChannel;
 	std::vector<UShort_t> vEnergy;

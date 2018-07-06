@@ -1,6 +1,5 @@
 #include <string>
 #include <iostream>
-#include "LockGuard.hpp"
 #include "StatusBar.hpp"
 
 namespace compass_unpack {
@@ -23,8 +22,6 @@ void compass_unpack::StatusBar::Reset(long long MaxEntries)
 
 void compass_unpack::StatusBar::operator() (long long niter)
 {
-	compass_unpack::LockGuard lg; // lock guard for thread safety
-	
   if(fFirstTime){
     std::cout << "\nProgress: ";
     std::flush(std::cout);

@@ -1,18 +1,19 @@
 #ifndef CU_LOCK_GUARD_HPP
 #define CU_LOCK_GUARD_HPP
+#include <mutex>
 #include <TVirtualRWMutex.h>
 
 namespace compass_unpack {
 
-class LockGuard {
+class RootLockGuard {
 public:
-	LockGuard()
+	RootLockGuard()
 		{
 			if(ROOT::gCoreMutex){
 				ROOT::gCoreMutex->Lock();
 			}
 		}
-	~LockGuard()
+	~RootLockGuard()
 		{
 			if(ROOT::gCoreMutex){
 				ROOT::gCoreMutex->UnLock();

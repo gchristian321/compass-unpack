@@ -3,6 +3,10 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <TROOT.h>
+#include <TChain.h>
+#include <TSystem.h>
+#include "json/json.h"
 #include "Event.hpp"
 #include "LockGuard.hpp"
 #include "StatusBar.hpp"
@@ -36,16 +40,64 @@ template<class T> Long64_t TimeDiff(const T& t1, const T& t2)
 	return abs(t2->GetTimestamp() - t1->GetTimestamp());
 }
 
+std::mutex gMutex;
+
 }
 
+#define LOCK_STD std::lock_guard<std::mutex> lock_(::gMutex)
 
-int main()
+int main(int argc, char** argv)
 {
-	cu::InputFileBin in("n14-test-june2018-DPP_PSD/DAQ/run_1234/UNFILTERED");
-	gStatusBar.Reset(in.GetTotalEvents());
+	if(argc != 2) {
+		std::cout << "usage: compass-unpack <config.json>\n";
+		return 1;
+	}
 
+	Json::Value config;
+  std::string configFileName = argv[1];
+  std::ifstream configStream(configFileName.c_str());
+  configStream >> config;
+  configStream.close();
+
+	std::string input_dir;
+	int runnum,nthreads;
 	Long64_t kMatchWindow = 20e6;
 	Long64_t kMaxTime = 10e12;
+	std::string outFileBase;
+	
+	for(Json::Value::iterator it = config.begin();it!=config.end();it++) {
+		if(false) {  }
+		else if(it.key().asString() == "projectDirectory") {
+			input_dir = it->asString();
+		}
+		else if(it.key().asString() == "runNumber") {
+			runnum = it->asInt();
+		}
+		else if(it.key().asString() == "numThreads") {
+			nthreads = it->asInt();
+		}
+		else if(it.key().asString() == "matchWindow") {
+			kMatchWindow = it->asInt()*1e6;
+		}
+		else if(it.key().asString() == "maxBufferTime") {
+			kMaxTime = it->asInt()*1e12;
+		}
+		else if(it.key().asString() == "outputFile") {
+			std::string val = it->asString();
+			outFileBase = val.substr(0, val.size() - val.rfind(".root") - 1);
+		}
+	}
+
+	std::string runDir =
+		Form("%s/DAQ/run_%i", input_dir.c_str(), runnum);
+	std::string inputFileDir =
+		Form("%s/UNFILTERED", runDir.c_str());
+	std::string threadDir =
+		runDir + "/files_" + outFileBase + ".root";
+
+	cu::InputFileBin in(inputFileDir);
+	gStatusBar.Reset(in.GetTotalEvents());
+
 	
 	Queue_t evtQueue;
 
@@ -62,7 +114,7 @@ int main()
 			if(nread == -1) {
 				break;
 			} else {
-				cu::LockGuard lg;
+				LOCK_STD;
 				assert(evtQueue.empty() || *(evtQueue.back()) < *evt);
 				evtQueue.push_back(evt);
 				++numread;
@@ -70,26 +122,28 @@ int main()
 		}
 		doneReading = true;
 	};
-	auto readerThread = std::thread(readerLoop);
 
-	auto handlerLoop = [&](){
+	Long64_t eventNo = 0;
+	auto handlerLoop = [&](int n){
+		std::string fn = n < 0 ?
+		runDir + "/" + outFileBase + ".root" :
+		threadDir + Form("/thread-%i.root", n);
+		
 		std::unique_ptr<EventHandler> handler
-		(new EventHandlerRoot
-		 ("n14-test-june2018-DPP_PSD/DAQ/run_1234/test-out.root",
-			"MatchedData",
-			"test"));
+		(new EventHandlerRoot(fn.c_str(),	"MatchedData", "Matched CoMPASS Data"));
 		handler->BeginningOfRun();
 		
 		while(true) {
 			if(doneReading) {
-				cu::LockGuard lg;
+				LOCK_STD;
 				if(evtQueue.empty()) {
 					break;
 				}
 			}
+			Long64_t thisEvent;
 			std::vector<std::shared_ptr<Event> > matches;
 			{
-				cu::LockGuard lg;
+				LOCK_STD;
 				if(doneReading || LengthInTime(evtQueue) > kMaxTime) {
 					Queue_t::iterator itBegin = evtQueue.begin();
 					Queue_t::iterator itEnd = evtQueue.begin();
@@ -98,24 +152,56 @@ int main()
 					}
 					matches.assign(itBegin, itEnd);
 					evtQueue.erase(itBegin, itEnd);
-
-					handler->BeginningOfEvent();
-					handler->HandleEvent(matches);
-					handler->EndOfEvent();					
-					gStatusBar.Incr(itEnd-itBegin);
-					numwritten += (itEnd-itBegin);
+					thisEvent = eventNo++;
+				}
+			}
+			if(matches.size()) {
+				handler->BeginningOfEvent();
+				handler->HandleEvent(thisEvent, matches);
+				handler->EndOfEvent();
+				{
+					LOCK_STD;
+					gStatusBar.Incr(matches.size());
+					numwritten += (matches.size());
 				}
 			}
 		}
 		handler->EndOfRun();
 	};
-	auto handlerThread = std::thread(handlerLoop);
 
-	std::cout << "\n----------- Unpacking Events -----------";
+
+	std::thread readerThread (readerLoop);
+	std::vector<std::thread> handlerThread;
+
+
+	if(nthreads == 1) {
+		handlerThread.push_back(std::thread(handlerLoop, -1));
+	}
+	else {
+		ROOT::EnableThreadSafety();
+		gSystem->Exec(Form("mkdir -p %s", threadDir.c_str()));
+
+		for(int i=0; i< nthreads; ++i){
+			handlerThread.push_back(std::thread(handlerLoop, i));
+		}
+	}
+
+
+	std::cout << "\n----------- Unpacking Events (" << nthreads << " threads) -----------";
 	readerThread.join();
-	handlerThread.join();
+	for (auto& ht : handlerThread) { ht.join(); }
 
-	std::cout << "\n----------- Summary -----------\n";
+	if(nthreads > 1){
+		TFile f((runDir + "/" + outFileBase + ".root").c_str(), "recreate");
+		TChain * ch = new TChain("MatchedData");
+		for(int n=0; n< nthreads; ++n){
+			ch->AddFile((threadDir +  Form("/thread-%i.root", n)).c_str() );
+		}
+		ch->Write("MatchedData");
+	}
+	
+	std::cout << "\n\n----------- Summary -----------\n";
 	std::cout << "Events read: " << numread << "\n" <<
-		"Events written: " << numwritten << "\n";
+		"Events written: " << numwritten << "\n" <<
+		"Events in queue: " << evtQueue.size() << "\n";
 }
