@@ -1,0 +1,10 @@
+{
+    "projectDirectory"  :  "n14-test-june2018-DPP_PSD",
+    "runNumber"         :  1234,
+    "outputFile"        :  "test-16_threads.root",
+    "outputTreeName"    :  "MatchedData",
+    "outputTreeTitle"   :  "Matched CoMPASS data",
+    "matchWindow"       :  20,  // microseconds
+    "maxBufferTime"     :  10,  // seconds
+    "numThreads"        :  16
+}
