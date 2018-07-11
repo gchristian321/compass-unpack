@@ -23,7 +23,7 @@ using namespace std;
 #include <set>
 #include <TRandom3.h>
 
-typedef std::deque<std::shared_ptr<Event> > Queue_t;
+typedef std::deque<std::vector<std::shared_ptr<Event> > > Queue_t;
 
 namespace {
 struct CompareEventPointer {
@@ -46,6 +46,7 @@ std::mutex gMutex;
 }
 
 #define LOCK_STD std::lock_guard<std::mutex> lock_(::gMutex)
+#define LOCK_STD_PTR std::unique_ptr<std::lock_guard<std::mutex> > (new std::lock_guard<std::mutex>(::gMutex))
 
 int main(int argc, char** argv)
 {
@@ -111,25 +112,38 @@ int main(int argc, char** argv)
 	gStatusBar.Reset(in.GetTotalEvents());
 
 	
-	Queue_t evtQueue;
+	Queue_t evtQueue(1);
+	evtQueue.front().reserve(16*in.GetNumberOfFiles());
 
 	std::atomic<bool> doneReading(false);
 
 	Long64_t numread(0), numwritten(0);
 	auto readerLoop = [&](){
+		std::vector<std::shared_ptr<Event> > vectorOfMatches;
+		vectorOfMatches.reserve(16*in.GetNumberOfFiles()); // for memory optimization
 		while(true) {
-			if(LengthInTime(evtQueue) > 2*kMaxTime) {
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));
-			}
 			auto evt = std::make_shared<cu::Event>();
 			Long64_t nread = in.ReadEvent(evt);
 			if(nread == -1) {
 				break;
 			} else {
-				LOCK_STD;
-				assert(evtQueue.empty() || *(evtQueue.back()) < *evt);
-				evtQueue.push_back(evt);
-				++numread;
+				assert(vectorOfMatches.empty() || evt->GetTimestamp() >= vectorOfMatches.back()->GetTimestamp());
+				if(vectorOfMatches.empty() || TimeDiff(evt, vectorOfMatches.front()) < kMatchWindow){
+					vectorOfMatches.emplace_back(evt);
+				} else {
+					// wait until queue is down to a reasonable size
+					while(evtQueue.size() > 100000) {
+						std::this_thread::sleep_for(std::chrono::milliseconds(100));
+					}
+					// Take the lock and append to shared event queue
+					{
+						LOCK_STD;
+						evtQueue.emplace_back(vectorOfMatches);
+					}
+					// Clear local vector of matches
+					numread += vectorOfMatches.size();
+					vectorOfMatches.clear();
+				}
 			}
 		}
 		doneReading = true;
@@ -147,24 +161,16 @@ int main(int argc, char** argv)
 		handler->BeginningOfRun();
 		
 		while(true) {
-			if(doneReading) {
-				LOCK_STD;
-				if(evtQueue.empty()) {
-					break;
-				}
+			if(doneReading && evtQueue.empty()) {
+				break;
 			}
 			Long64_t thisEvent;
 			std::vector<std::shared_ptr<Event> > matches;
 			{
 				LOCK_STD;
-				if(doneReading || LengthInTime(evtQueue) > kMaxTime) {
-					Queue_t::iterator itBegin = evtQueue.begin();
-					Queue_t::iterator itEnd = evtQueue.begin();
-					while(itEnd != evtQueue.end() && TimeDiff(*itEnd, *itBegin) < kMatchWindow) {
-						++itEnd;
-					}
-					matches.assign(itBegin, itEnd);
-					evtQueue.erase(itBegin, itEnd);
+				if(!evtQueue.empty()) {
+					matches = *evtQueue.begin();
+					evtQueue.erase(evtQueue.begin());
 					thisEvent = eventNo++;
 				}
 			}
