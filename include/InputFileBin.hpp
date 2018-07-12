@@ -20,6 +20,7 @@ namespace compass_unpack {
     virtual Long64_t ReadEvent(std::shared_ptr<Event>& event);
     virtual Long64_t GetTotalEvents() const { return fSize;   }
     virtual Long64_t GetEventNumber() const { return fEventNo;}
+		virtual bool Good() const { return !(fStreams.empty()); }
 
  private:
 		typedef std::unique_ptr<std::ifstream> Strm_t;

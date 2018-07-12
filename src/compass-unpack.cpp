@@ -12,6 +12,7 @@
 #include "StatusBar.hpp"
 #include "TTreeMerger.hpp"
 #include "InputFileBin.hpp"
+#include "InputFileRoot.hpp"
 #include "EventHandlerRoot.hpp"
 
 namespace cu = compass_unpack;
@@ -108,8 +109,21 @@ int main(int argc, char** argv)
 		outputFile = runDir + "/" + of;
 	}
 	
-	cu::InputFileBin in(inputFileDir);
-	gStatusBar.Reset(in.GetTotalEvents());
+	std::unique_ptr<cu::InputFile> in(nullptr);
+	if(true) {
+		// first try a ROOT input
+		in.reset(new InputFileRoot(inputFileDir));
+	}
+	if(!in->Good()) {
+		// then try binary input
+		in.reset(new InputFileBin(inputFileDir));
+	}
+	if(!in->Good()) {
+		// invalid directory - neither ROOT or binary files found
+		std::cerr << "ERROR: invalid input directory!\n";
+		exit(1);
+	}
+	gStatusBar.Reset(in->GetTotalEvents());
 
 	
 	Queue_t evtQueue;	
@@ -136,7 +150,7 @@ int main(int argc, char** argv)
 		Long64_t nread = 0;
 		do {
 			auto evt = std::make_shared<cu::Event>();
-			nread = in.ReadEvent(evt);
+			nread = in->ReadEvent(evt);
 
 			if(nread == -1) { // we are done, flush buffer
 				// take the lock and append to shared event queue

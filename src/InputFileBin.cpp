@@ -48,15 +48,27 @@ private:
 	std::unique_ptr<std::ifstream>& fIfs;
 };
 
+class ErrorIgnore{
+	Int_t level_;
+public:
+	ErrorIgnore(Int_t level) : level_(gErrorIgnoreLevel) { gErrorIgnoreLevel = level; }
+	~ErrorIgnore() { gErrorIgnoreLevel = level_; }
+};
+
 }
 
 std::vector<std::string> cu::InputFileBin::GetFilesInDirectory(const std::string& dir){
 	TString files;
 	if(dir != "") {
-		files = gSystem->GetFromPipe( (std::string("ls ") + dir + "/*.bin").c_str() );
+		ErrorIgnore ei(kError+1);
+		files = gSystem->GetFromPipe( (std::string("ls ") + dir + "/*.bin 2>/dev/null").c_str() );
 	} else {
-		files = gSystem->GetFromPipe( (std::string("ls ") + "*.bin").c_str() );
+		ErrorIgnore ei(kError+1);
+		files = gSystem->GetFromPipe( (std::string("ls ") + "*.bin 2>/dev/null").c_str() );
 	}
+	if(files.EqualTo("")) {
+		return std::vector<std::string>();
+	}	
 	std::unique_ptr<TObjArray> filesTokenized(files.Tokenize("\n"));
 	std::vector<std::string> filesOut(filesTokenized->GetEntries());
 	for(int i=0; i< filesTokenized->GetEntries(); ++i){
