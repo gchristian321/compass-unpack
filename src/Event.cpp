@@ -5,8 +5,6 @@
 
 namespace cu = compass_unpack;
 
-std::atomic<Long64_t> cu::Event::kMatchWindow (10e6);
-
 cu::Event::Event():
   fBoard(0),
   fChannel(0),

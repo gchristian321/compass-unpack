@@ -112,40 +112,63 @@ int main(int argc, char** argv)
 	gStatusBar.Reset(in.GetTotalEvents());
 
 	
-	Queue_t evtQueue(1);
-	evtQueue.front().reserve(16*in.GetNumberOfFiles());
-
+	Queue_t evtQueue;	
 	std::atomic<bool> doneReading(false);
 
+	auto verifyOrder = [](Event& lastEvent, const Event& thisEvent){
+		if(lastEvent < thisEvent) { // okay!
+			lastEvent.fBoard = thisEvent.fBoard;
+			lastEvent.fChannel = thisEvent.fChannel;
+			lastEvent.fTimestamp = thisEvent.fTimestamp;	
+		} else {
+			std::cerr << "ERROR: events received out of order!\n";
+			std::cerr << "Last Event:\n"; lastEvent.Print();
+			std::cerr << "This Event:\n"; thisEvent.Print();
+			exit(1);
+		}
+	};
+	
 	Long64_t numread(0), numwritten(0);
 	auto readerLoop = [&](){
 		std::vector<std::shared_ptr<Event> > vectorOfMatches;
-		vectorOfMatches.reserve(16*in.GetNumberOfFiles()); // for memory optimization
-		while(true) {
+
+		Event lastEvent;
+		Long64_t nread = 0;
+		do {
 			auto evt = std::make_shared<cu::Event>();
-			Long64_t nread = in.ReadEvent(evt);
-			if(nread == -1) {
-				break;
-			} else {
-				assert(vectorOfMatches.empty() || evt->GetTimestamp() >= vectorOfMatches.back()->GetTimestamp());
-				if(vectorOfMatches.empty() || TimeDiff(evt, vectorOfMatches.front()) < kMatchWindow){
+			nread = in.ReadEvent(evt);
+
+			if(nread == -1) { // we are done, flush buffer
+				// take the lock and append to shared event queue
+				LOCK_STD;
+				evtQueue.emplace_back(vectorOfMatches);				
+			} else { // we have an event!
+				//
+				// Verify events always received in order
+				if(numread++) { verifyOrder(lastEvent, *evt); }
+				//
+				// Insert into vector of matched events
+				if(vectorOfMatches.empty() || TimeDiff(evt, vectorOfMatches.front()) < kMatchWindow) {
+					// We are either starting fresh, or have a match
 					vectorOfMatches.emplace_back(evt);
 				} else {
-					// wait until queue is down to a reasonable size
-					while(evtQueue.size() > 100000) {
-						std::this_thread::sleep_for(std::chrono::milliseconds(100));
+					// Not a match, push the existing match vector and start fresh
+					//
+					// But first wait until shared queue is down to a reasonable size
+					while(evtQueue.size() > 10000) {
+						std::this_thread::sleep_for(std::chrono::milliseconds(10));
 					}
-					// Take the lock and append to shared event queue
-					{
-						LOCK_STD;
+					// Then take the lock and append to shared event queue
+					{	LOCK_STD;
 						evtQueue.emplace_back(vectorOfMatches);
 					}
 					// Clear local vector of matches
-					numread += vectorOfMatches.size();
 					vectorOfMatches.clear();
+					vectorOfMatches.emplace_back(evt);
 				}
 			}
-		}
+		} while(nread != -1);
+		
 		doneReading = true;
 	};
 
@@ -161,28 +184,30 @@ int main(int argc, char** argv)
 		handler->BeginningOfRun();
 		
 		while(true) {
-			if(doneReading && evtQueue.empty()) {
-				break;
+			{
+				LOCK_STD;
+				if(doneReading && evtQueue.empty()) {
+					break;
+				}
 			}
 			Long64_t thisEvent;
 			std::vector<std::shared_ptr<Event> > matches;
-			{
-				LOCK_STD;
-				if(!evtQueue.empty()) {
-					matches = *evtQueue.begin();
-					evtQueue.erase(evtQueue.begin());
-					thisEvent = eventNo++;
-				}
-			}
-			if(matches.size()) {
+			auto lock = LOCK_STD_PTR;
+			if(!evtQueue.empty()) {
+				matches = *evtQueue.begin();
+				evtQueue.erase(evtQueue.begin());
+				thisEvent = eventNo++;
+				lock.reset(nullptr);
+
+				//
 				handler->BeginningOfEvent();
 				handler->HandleEvent(thisEvent, matches);
 				handler->EndOfEvent();
-				{
-					LOCK_STD;
-					gStatusBar.Incr(matches.size());
-					numwritten += (matches.size());
-				}
+
+				//
+				lock.reset(new std::lock_guard<std::mutex>(::gMutex));
+				gStatusBar.Incr(matches.size());
+				numwritten += (matches.size());
 			}
 		}
 		handler->EndOfRun();

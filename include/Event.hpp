@@ -21,10 +21,10 @@ public:
 	Long64_t  GetTimestamp()   const { return fTimestamp;   }
 	UInt_t    GetFlags()       const { return fFlags;       }
 	const std::vector<UShort_t>& GetWaveform() const { return fWaveform; }
-		
 	bool operator< (const Event& rhs) const;
-		
-private:
+	void Print() const;		
+
+public:
 	UShort_t  fBoard;       
 	UShort_t  fChannel;
 	UShort_t  fEnergy;
@@ -33,15 +33,6 @@ private:
 	UInt_t    fFlags;
 	std::vector<UShort_t> fWaveform;
 
-public:
-	static void SetMatchWindow(Long64_t Window) { kMatchWindow = Window; }
-	static Long64_t GetMatchWindow() { return kMatchWindow;   }
-	void Print() const;
-	
-private:
-	static std::atomic<Long64_t> kMatchWindow;
-	
-	friend class compass_unpack::InputFileBin;
 };
   
 }
