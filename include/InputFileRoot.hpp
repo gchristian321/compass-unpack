@@ -1,7 +1,9 @@
 #ifndef CU_INPUT_FILE_ROOT_HEADER
 #define CU_INPUT_FILE_ROOT_HEADER
+#include <set>
 #include <string>
 #include <memory>
+#include "ComparePointer.hpp"
 #include "InputFile.hpp"
 
 class TChain;
@@ -29,6 +31,9 @@ namespace compass_unpack {
     ULong64_t fTimestampUnsigned;
     UInt_t    fFlags;
     Long64_t  fEventNo;
+		Long64_t  fReturnedEvents;
+
+		std::set<std::shared_ptr<Event>, CompareSharedPointer<Event> > fLocalBuffer;
   };
 
 }

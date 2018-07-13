@@ -79,6 +79,7 @@ cu::InputFileRoot::InputFileRoot(const std::string& run_directory):
 		fChain->SetBranchAddress("Flags",&fFlags);
 
 		fEventNo = 0;
+		fReturnedEvents = 0;
 	}
 }
 
@@ -95,8 +96,10 @@ Long64_t cu::InputFileRoot::GetTotalEvents() const
 
 Long64_t cu::InputFileRoot::ReadEvent(std::shared_ptr<compass_unpack::Event>& event)
 {
+	bool readEvent = false;
   if(fEventNo < fChain->GetEntries()) {
     // Read entry from tree and increment event number
+		readEvent = true;
     fChain->GetEntry(fEventNo++);
     if(fTimestampUnsigned > std::numeric_limits<Long64_t>::max()) {
       std::cerr << "ERROR:: timestamp value overflows 64-bit signed max! "
@@ -104,22 +107,33 @@ Long64_t cu::InputFileRoot::ReadEvent(std::shared_ptr<compass_unpack::Event>& ev
       exit(1);
     }
 
-    // Copy read parameters to event class
-    event->fBoard       = fBoard;
-    event->fChannel     = fChannel;
-    event->fEnergy      = fEnergy;
-    event->fEnergyShort = fEnergyShort;
-    event->fTimestamp   = fTimestampUnsigned;
-    event->fFlags       = fFlags;
-    if(!event->GetWaveform().empty()) {
-			event->fWaveform.clear();
-		}
+    // Copy read parameters to local event class
+		std::shared_ptr<Event> nextEvent(new Event());
+    nextEvent->fBoard       = fBoard;
+    nextEvent->fChannel     = fChannel;
+    nextEvent->fEnergy      = fEnergy;
+    nextEvent->fEnergyShort = fEnergyShort;
+    nextEvent->fTimestamp   = fTimestampUnsigned;
+    nextEvent->fFlags       = fFlags;
 
-    // return new event number
-    return fEventNo;
-  } else {
+		// push into local buffer
+		fLocalBuffer.insert(nextEvent);
+	}
+	
+	auto Pop = [&]() {
+		event = *fLocalBuffer.begin();
+		fLocalBuffer.erase(fLocalBuffer.begin());
+		return ++fReturnedEvents;
+	};
+	
+	if(!readEvent) {
+		return fLocalBuffer.empty() ? -1 : Pop();
+	}
 
-    // We are done with the chain, return -1
-    return -1;
-  }
+	// pop earliest event if we have enough
+	if((*fLocalBuffer.rbegin())->fTimestamp - (*fLocalBuffer.begin())->fTimestamp > 10e12) {
+		return Pop();
+	}
+
+	return 0;
 }

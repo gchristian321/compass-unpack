@@ -44,10 +44,11 @@ template<class T> Long64_t TimeDiff(const T& t1, const T& t2)
 
 std::mutex gMutex;
 
+typedef std::unique_ptr<std::lock_guard<std::mutex> > LockGuard;
+inline LockGuard MakeLockGuard() { LockGuard l(new std::lock_guard<std::mutex>(::gMutex)); return std::move(l); }
+inline void ReleaseLockGuard(LockGuard& l) { l.reset(nullptr); }
+inline void ResetLockGuard(LockGuard& l) { l.reset(new std::lock_guard<std::mutex>(::gMutex)); }
 }
-
-#define LOCK_STD std::lock_guard<std::mutex> lock_(::gMutex)
-#define LOCK_STD_PTR std::unique_ptr<std::lock_guard<std::mutex> > (new std::lock_guard<std::mutex>(::gMutex))
 
 int main(int argc, char** argv)
 {
@@ -142,7 +143,7 @@ int main(int argc, char** argv)
 		}
 	};
 	
-	Long64_t numread(0), numwritten(0);
+	Long64_t numread(0), numwritten(0), nummatched(0);
 	auto readerLoop = [&](){
 		std::vector<std::shared_ptr<Event> > vectorOfMatches;
 
@@ -154,9 +155,10 @@ int main(int argc, char** argv)
 
 			if(nread == -1) { // we are done, flush buffer
 				// take the lock and append to shared event queue
-				LOCK_STD;
-				evtQueue.emplace_back(vectorOfMatches);				
-			} else { // we have an event!
+				auto lock_ = MakeLockGuard();
+				evtQueue.emplace_back(vectorOfMatches);
+				++nummatched;
+			} else if(nread > 0) { // we have an event!
 				//
 				// Verify events always received in order
 				if(numread++) { verifyOrder(lastEvent, *evt); }
@@ -173,8 +175,9 @@ int main(int argc, char** argv)
 						std::this_thread::sleep_for(std::chrono::milliseconds(10));
 					}
 					// Then take the lock and append to shared event queue
-					{	LOCK_STD;
+					{	auto lock_ = MakeLockGuard();
 						evtQueue.emplace_back(vectorOfMatches);
+						++nummatched;
 					}
 					// Clear local vector of matches
 					vectorOfMatches.clear();
@@ -194,32 +197,30 @@ int main(int argc, char** argv)
 		std::unique_ptr<EventHandler> handler
 		(new EventHandlerRoot
 		 (fn.c_str(), treeName,	treeTitle));
+
+		Long64_t thisEvent;
+		std::vector<std::shared_ptr<Event> > matches;
 		
 		handler->BeginningOfRun();
-		
 		while(true) {
-			{
-				LOCK_STD;
-				if(doneReading && evtQueue.empty()) {
-					break;
-				}
+			auto lock_ = MakeLockGuard();
+			if(doneReading && evtQueue.empty()) {
+				break;
 			}
-			Long64_t thisEvent;
-			std::vector<std::shared_ptr<Event> > matches;
-			auto lock = LOCK_STD_PTR;
 			if(!evtQueue.empty()) {
+				// copy to local buffer & release the lock
 				matches = *evtQueue.begin();
 				evtQueue.erase(evtQueue.begin());
 				thisEvent = eventNo++;
-				lock.reset(nullptr);
-
-				//
+				ReleaseLockGuard(lock_);
+					
+				// handle the event from local buffer
 				handler->BeginningOfEvent();
 				handler->HandleEvent(thisEvent, matches);
 				handler->EndOfEvent();
-
-				//
-				lock.reset(new std::lock_guard<std::mutex>(::gMutex));
+					
+				// retake the lock and update printer
+				ResetLockGuard(lock_);
 				gStatusBar.Incr(matches.size());
 				numwritten += (matches.size());
 			}
@@ -243,12 +244,13 @@ int main(int argc, char** argv)
 	}
 
 
-	std::cout << "\n----------- Unpacking Events (" << nthreads << " threads) -----------";
+	std::string threads_ = nthreads == 1 ? "thread" : "threads";
+	std::cout << "\n----------- Unpacking Events (" << nthreads << " " << threads_ << ") -----------";
 	readerThread.join();
 	for (auto& ht : handlerThread) { ht.join(); }
 	
 	std::cout << "\n\n----------- Summary -----------\n";
-	std::cout << "Events read: " << numread << "\n" <<
-		"Events written: " << numwritten << "\n" <<
+	std::cout << "Events read: " << numread << " (unmatched), " << nummatched <<" (matched)\n" <<
+		"Events written: " << numwritten << " (unmatched), " << eventNo <<" (matched)\n" <<
 		"Events in queue: " << evtQueue.size() << "\n";
 }

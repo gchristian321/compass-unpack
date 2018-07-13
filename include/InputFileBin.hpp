@@ -5,6 +5,7 @@
 #include <string>
 #include <fstream>
 #include "Event.hpp"
+#include "ComparePointer.hpp"
 #include "InputFile.hpp"
 
 
@@ -37,14 +38,10 @@ namespace compass_unpack {
     std::vector<Strm_t>  fStreams;
 		std::vector<bool> fPSD;
     UInt_t fDoneStreams;
-		struct CompareEventPointer {
-			bool operator()(const std::shared_ptr<Event>& l, const std::shared_ptr<Event>& r)
-				{ return *l < *r; }
-		};
     // <Event, <stream indx, number of bytes read> >
     std::map<std::shared_ptr<Event>,
 						 std::pair<size_t, Long64_t>,
-						 CompareEventPointer>
+						 CompareSharedPointer<compass_unpack::Event> >
 		fLocalBuffer;
   };
 
