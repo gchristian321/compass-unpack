@@ -14,6 +14,7 @@
 #include "InputFileBin.hpp"
 #include "InputFileRoot.hpp"
 #include "EventHandlerRoot.hpp"
+#include "EventHandlerNptool.hpp"
 
 namespace cu = compass_unpack;
 using namespace compass_unpack;
@@ -70,6 +71,7 @@ int main(int argc, char** argv)
 	std::string outputFile("matched.root");
 	std::string treeName("MatchedData");
 	std::string treeTitle("Matched CoMPASS Data");
+	std::string outputType("ROOT");
 	
 	for(Json::Value::iterator it = config.begin();it!=config.end();it++) {
 		if(false) {  }
@@ -96,6 +98,9 @@ int main(int argc, char** argv)
 		}
 		else if(it.key().asString() == "outputTreeTitle") {
 			treeTitle = it->asString();
+		}
+		else if(it.key().asString() == "outputType") {
+			outputType = ToUpper(TString(it->asString().c_str())).Data();
 		}
 	}
 
@@ -194,9 +199,19 @@ int main(int argc, char** argv)
 		std::string fn = n < 0 ? outputFile :
 		TTreeMerger::GetThreadFile(n, outputFile);
 		
-		std::unique_ptr<EventHandler> handler
-		(new EventHandlerRoot
-		 (fn.c_str(), treeName,	treeTitle));
+		std::unique_ptr<EventHandler> handler(nullptr);
+
+		if(false) {  }
+		else if(outputType == "ROOT") {
+			handler.reset(new EventHandlerRoot(fn.c_str(), treeName,	treeTitle));
+		}
+		else if(outputType == "NPTOOL") {
+			handler.reset(new EventHandlerNptool(fn.c_str(), treeName, treeTitle));
+		}
+		else {
+			std::cerr << "ERROR: invalid output type: \"" << outputType << "\", exiting!\n";
+			exit(1);
+		}
 
 		Long64_t thisEvent;
 		std::vector<std::shared_ptr<Event> > matches;

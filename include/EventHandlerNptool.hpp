@@ -7,31 +7,41 @@
 namespace compass_unpack {
 
 class Event;
-class WaveformProcessor;
 
-class EventHandler {
+class EventHandlerNptool : public EventHandler {
 public:
-	EventHandler() {}
-	virtual ~EventHandler() {}
-	virtual void BeginningOfRun() = 0;
-	virtual void BeginningOfEvent() = 0;
+	EventHandlerNptool
+	(const std::string& outputFileName, 
+	 const std::string& outputTreeName, 
+	 const std::string& outputTreeTitle);
+	virtual ~EventHandlerNptool();
+	virtual void BeginningOfRun();
+	virtual void BeginningOfEvent();
 	virtual Long64_t HandleEvent
-	(Long64_t eventNo, const std::vector<std::shared_ptr<Event> >&) = 0;
-	virtual void EndOfEvent() = 0;
-	virtual void EndOfRun() = 0;
+	(Long64_t eventNo, const std::vector<std::shared_ptr<Event> >& event);
+	virtual void EndOfEvent();
+	virtual void EndOfRun();
 };
 
 }
 
 #else // Define dummy class
+#include <iostream>
+#include "Event.hpp"
 #include "EventHandler.hpp"
 
 namespace compass_unpack {
 
-class EventHandlerNptool {
-private: // make creation impossible
-	EventHandlerNptool() {}
+class EventHandlerNptool : public EventHandler {
 public:
+	EventHandlerNptool
+	(const std::string&,
+	 const std::string&,
+	 const std::string&)
+		{
+			std::cerr << "ERROR: Tried to create EventHandlerNptool without Nptool libraries!\n";
+			exit(1);
+		}
 	virtual ~EventHandlerNptool() {}
 	virtual void BeginningOfRun() {}
 	virtual void BeginningOfEvent() {}

@@ -1,5 +1,6 @@
 #ifndef CU_EVENT_HANDLER_HPP
 #define CU_EVENT_HANDLER_HPP
+#include <memory>
 #include <Rtypes.h>
 
 namespace compass_unpack {
