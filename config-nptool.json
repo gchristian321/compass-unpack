@@ -1,0 +1,12 @@
+{
+    "projectDirectory"  :  "offline/projects/test-wires",
+    "runNumber"         :  6,
+    "outputType"        :  "NPTOOL",
+    "outputFile"        :  "compass_run_6-nptool.root",
+    "outputTreeName"    :  "FpdTamuTree",
+    "outputTreeTitle"   :  "Matched FPD Data",
+    "detectorConfig"    :  "mdm_channel_map.txt",
+    "matchWindow"       :  20,  // microseconds
+    "maxBufferTime"     :  10,  // seconds
+    "numThreads"        :  1
+}
