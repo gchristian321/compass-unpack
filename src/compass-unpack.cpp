@@ -67,11 +67,11 @@ int main(int argc, char** argv)
 	std::string input_dir;
 	int runnum,nthreads;
 	Long64_t kMatchWindow = 20e6;
-	Long64_t kMaxTime = 10e12;
 	std::string outputFile("matched.root");
 	std::string treeName("MatchedData");
 	std::string treeTitle("Matched CoMPASS Data");
 	std::string outputType("ROOT");
+	std::string detConfig("");
 	
 	for(Json::Value::iterator it = config.begin();it!=config.end();it++) {
 		if(false) {  }
@@ -87,9 +87,6 @@ int main(int argc, char** argv)
 		else if(it.key().asString() == "matchWindow") {
 			kMatchWindow = it->asInt()*1e6;
 		}
-		else if(it.key().asString() == "maxBufferTime") {
-			kMaxTime = it->asInt()*1e12;
-		}
 		else if(it.key().asString() == "outputFile") {
 			outputFile = it->asString();
 		}
@@ -101,6 +98,9 @@ int main(int argc, char** argv)
 		}
 		else if(it.key().asString() == "outputType") {
 			outputType = ToUpper(TString(it->asString().c_str())).Data();
+		}
+		else if(it.key().asString() == "detectorConfig") {
+			detConfig = it->asString();
 		}
 	}
 
@@ -206,7 +206,7 @@ int main(int argc, char** argv)
 			handler.reset(new EventHandlerRoot(fn.c_str(), treeName,	treeTitle));
 		}
 		else if(outputType == "NPTOOL") {
-			handler.reset(new EventHandlerNptool(fn.c_str(), treeName, treeTitle));
+			handler.reset(new EventHandlerNptool(fn.c_str(), treeName, treeTitle, detConfig));
 		}
 		else {
 			std::cerr << "ERROR: invalid output type: \"" << outputType << "\", exiting!\n";
