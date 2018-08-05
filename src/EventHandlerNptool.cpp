@@ -12,6 +12,15 @@ using namespace std;
 
 namespace cu = compass_unpack;
 
+namespace {
+class DummySetter {
+public:
+	void Set_E(int,double){}
+	void Set_T(int,double){}
+};
+DummySetter gDummySetter;
+}
+
 cu::EventHandlerNptool::EventHandlerNptool
 (const string& outputFileName, 
  const string& outputTreeName, 
@@ -150,7 +159,14 @@ void cu::EventHandlerNptool::ParseConfig()
 							 make_pair(bind(&TFPDTamuData::Set_Plast_E, fFpd, col, placeholders::_1),
 												 bind(&TFPDTamuData::Set_Plast_T, fFpd, col, placeholders::_1)
 								 ) );
-					}																				
+					}
+					else if(component == "EMPTY") {
+						fFpdMap.emplace
+							(make_pair(module, channel),
+							 make_pair(bind(&DummySetter::Set_E, gDummySetter, col, placeholders::_1),
+												 bind(&DummySetter::Set_T, gDummySetter, col, placeholders::_1)
+								 ) );
+					}
 					else {
 						cerr << "WARNING: unrecognized FPDTAMU component: \"" << component << "\", skipping...\n";
 					}
