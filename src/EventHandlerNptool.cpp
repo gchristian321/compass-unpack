@@ -93,10 +93,10 @@ void cu::EventHandlerNptool::ParseConfig()
 {
 	ifstream infile(fDetectorConfig.c_str());
   if(infile.is_open()){
-    cout << "**** Reading configuration file : " << fDetectorConfig << " ****" << endl;  
+    cout << "\n**** Reading configuration file : " << fDetectorConfig << " ****" << endl;  
   }
   else{
-    cout << "**** ERROR: Configuration file : " <<  fDetectorConfig << " not found ****"<< endl;
+    cout << "\n**** ERROR: Configuration file : " <<  fDetectorConfig << " not found ****"<< endl;
     exit(1);
   }
 	
