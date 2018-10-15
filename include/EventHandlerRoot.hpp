@@ -37,6 +37,7 @@ private:
 	std::vector<UShort_t> vBoard;
 	std::vector<UShort_t> vChannel;
 	std::vector<UShort_t> vEnergy;
+	std::vector<UShort_t> vEnergyShort;
 	std::vector<Long64_t> vTimestamp;
 	std::vector<UInt_t>   vFlags;
 	TClonesArray* vWaveforms;

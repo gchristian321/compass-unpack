@@ -32,12 +32,13 @@ void cu::EventHandlerRoot::BeginningOfRun()
   assert(fFile.get() && !(fFile->IsZombie()));
   fTree = new TTree(fTreename.c_str(), fTreetitle.c_str());
 
-	fTree->Branch("EventNo",  &fEventNo,  "EventNo/L");
-  fTree->Branch("Board",    &vBoard);
-  fTree->Branch("Channel",  &vChannel);
-  fTree->Branch("Energy",   &vEnergy);
-  fTree->Branch("Timestamp",&vTimestamp);
-  fTree->Branch("Flags",    &vFlags);
+	fTree->Branch("EventNo",     &fEventNo,  "EventNo/L");
+  fTree->Branch("Board",       &vBoard);
+  fTree->Branch("Channel",     &vChannel);
+  fTree->Branch("Energy",      &vEnergy);
+	fTree->Branch("EnergyShort", &vEnergyShort);
+  fTree->Branch("Timestamp",   &vTimestamp);
+  fTree->Branch("Flags",       &vFlags);
 
 	vWaveforms = new TClonesArray("TNDArrayT<UShort_t>");
   vWaveforms->BypassStreamer();
@@ -51,6 +52,7 @@ void cu::EventHandlerRoot::BeginningOfEvent()
   vBoard.clear();
   vChannel.clear();
   vEnergy.clear();
+	vEnergyShort.clear();
   vTimestamp.clear();
   vFlags.clear();
   vWaveforms->Clear();
@@ -66,6 +68,7 @@ Long64_t cu::EventHandlerRoot::HandleEvent
 		vBoard.push_back(event->GetBoard());
 		vChannel.push_back(event->GetChannel());
 		vEnergy.push_back(event->GetEnergy());
+		vEnergyShort.push_back(event->GetEnergyShort());
 		vTimestamp.push_back(event->GetTimestamp());
 		vFlags.push_back(event->GetFlags());
 
