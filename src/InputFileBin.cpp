@@ -165,11 +165,22 @@ bool cu::InputFileBin::CheckPSD(Strm_t& fstrm, const std::string& filename)
 cu::InputFileBin::InputFileBin(const std::string& run_directory):
 	fEventNo(0), fSize(0), fAvgEventSize(0), fDoneStreams(0)
 {
+	auto FileIsEmpty = [](const std::string& fname){
+		std::ifstream ifs(fname.c_str());
+		std::streampos fsize = ifs.tellg();
+		ifs.seekg(0,std::ios::end);
+		return (ifs.tellg() - fsize) == 0;
+	};
+	
   std::vector<std::string> files = GetFilesInDirectory(run_directory);
 
   std::cout << "\n----------- Opening Files -----------\n";
   size_t ifile = 0;
-  for(auto& f : files) {
+  for(const auto& f : files) {
+		if(FileIsEmpty(f)) {
+			std::cout << f << " (IGNORNING -- EMPTY)\n";
+			continue;
+		}
     fStreams.emplace_back
 			(std::unique_ptr<std::ifstream>
 			 (new std::ifstream(f.c_str(), std::ios::binary)));
