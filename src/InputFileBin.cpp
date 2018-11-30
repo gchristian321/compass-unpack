@@ -5,6 +5,7 @@
 #include <TFile.h>
 #include <TChain.h>
 #include <TSystem.h>
+#include <TError.h>
 #include "Event.hpp"
 #include "InputFileBin.hpp"
 
