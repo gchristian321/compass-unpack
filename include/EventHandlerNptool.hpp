@@ -56,6 +56,7 @@ public:
 	EventHandlerNptool
 	(const std::string&,
 	 const std::string&,
+	 const std::string&,
 	 const std::string&)
 		{
 			std::cerr << "ERROR: Tried to create EventHandlerNptool without Nptool libraries!\n";
