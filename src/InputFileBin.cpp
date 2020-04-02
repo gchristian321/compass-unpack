@@ -190,7 +190,7 @@ cu::InputFileBin::InputFileBin(const std::string& run_directory):
 														
     std::pair<Long64_t,Long64_t> sizes =
       GetFileSizeAndReopen(ifile, f.c_str());
-    fSize += (sizes.first / sizes.second); // total size / avg. event size
+    if(sizes.second) fSize += (sizes.first / sizes.second); // total size / avg. event size
     fAvgEventSize.push_back(sizes.second); // avg size for this stream
     ++ifile;
 
