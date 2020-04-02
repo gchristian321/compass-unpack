@@ -55,7 +55,11 @@ void cu::EventHandlerRoot::BeginningOfEvent()
 	vEnergyShort.clear();
   vTimestamp.clear();
   vFlags.clear();
-  vWaveforms->Clear();
+	//
+	// GAC: TCLonesArray::Delete(), not Clear() required to call destructor
+	// of TNDArray object. see here fro nice explanaction:
+	// https://redmine.cbm.gsi.de/issues/685
+  vWaveforms->Delete(); 
 }
 
 Long64_t cu::EventHandlerRoot::HandleEvent
