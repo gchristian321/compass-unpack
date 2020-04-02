@@ -85,7 +85,7 @@ int main(int argc, char** argv)
 			nthreads = it->asInt();
 		}
 		else if(it.key().asString() == "matchWindow") {
-			kMatchWindow = it->asInt()*1e6;
+			kMatchWindow = it->asDouble()*1e6;
 		}
 		else if(it.key().asString() == "outputFile") {
 			outputFile = it->asString();

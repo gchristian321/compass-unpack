@@ -1,5 +1,6 @@
 #ifndef CU_COMPARE_POINTER
 #define CU_COMPARE_POINTER
+#include <memory>
 
 namespace compass_unpack {
 

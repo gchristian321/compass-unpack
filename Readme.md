@@ -18,4 +18,11 @@ To compile do the following:
 To run the program, the only argument is the path of a json config file. See
 the json files in this directory for examples.
 
-    ./compass_unpack ../config.json
+NOTE - please do not modify the example JSON config files, or if you do, do not check
+your modifications into github. They are meant to be a static example files. The
+preferred workflow when starting for the first time is to copy the examples to a new
+file and then modify:
+
+    cp ../config.json ../my_config.json
+    ## <modify ../my_config.json>
+    ./compass-unpack ../my_config.json
