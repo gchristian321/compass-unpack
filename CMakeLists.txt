@@ -38,11 +38,14 @@ file(GLOB headers ${PROJECT_SOURCE_DIR}/include/*.hpp ${PROJECT_SOURCE_DIR}/incl
 #----------------------------------------------------------------------------
 # Add the shared library & executables, and link it to the necessary libraries
 #
-# add_library(r6utils SHARED ${sources} ${headers} Dict.cxx r6utils.sh)
+find_library(r6utils_location NAMES libr6utils.so)
+message(STATUS ${r6utils_location})
+#add_library(r6utils SHARED ${sources} ${headers} Dict.cxx r6utils.sh)
 add_executable(compass-unpack ${sources}) # ${PROJECT_SOURCE_DIR}/src/compass-unpack.cpp)
 target_link_libraries(compass-unpack ${ROOT_LIBRARIES} ${NPTOOL_LIBS})
 
 #----------------------------------------------------------------------------
 # Install the executable to 'bin' directory under CMAKE_INSTALL_PREFIX
 #
-# install(TARGETS r6utils DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+#install(TARGETS r6utils DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+install(TARGETS DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
