@@ -14,6 +14,7 @@
 #include "InputFileBin.hpp"
 #include "InputFileRoot.hpp"
 #include "EventHandlerRoot.hpp"
+#include "EventHandlerRootSimple.hpp"
 #include "EventHandlerNptool.hpp"
 
 namespace cu = compass_unpack;
@@ -53,9 +54,21 @@ inline void ResetLockGuard(LockGuard& l) { l.reset(new std::lock_guard<std::mute
 
 int main(int argc, char** argv)
 {
-	if(argc != 2) {
+	auto showHelp = [](int retcode){
 		std::cout << "usage: compass-unpack <config.json>\n";
-		return 1;
+		return retcode;
+	};
+	if(argc != 2) {
+		return showHelp(1);
+	} else {
+		for(int i=1; i< argc; ++i){
+			if(std::string(argv[i]) == "-h" ||
+				 std::string(argv[i]) == "--help" ||
+				 std::string(argv[i]) == "-help"
+				) {
+				return showHelp(1);
+			}
+		}
 	}
 
 	Json::Value config;
@@ -204,6 +217,9 @@ int main(int argc, char** argv)
 		if(false) {  }
 		else if(outputType == "ROOT") {
 			handler.reset(new EventHandlerRoot(fn.c_str(), treeName,	treeTitle));
+		}
+		else if(outputType == "ROOT_SIMPLE") {
+			handler.reset(new EventHandlerRootSimple(fn.c_str(), treeName,	treeTitle));
 		}
 		else if(outputType == "NPTOOL") {
 			handler.reset(new EventHandlerNptool(fn.c_str(), treeName, treeTitle, detConfig));
