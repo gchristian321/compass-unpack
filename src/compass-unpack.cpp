@@ -85,6 +85,7 @@ int main(int argc, char** argv)
 	std::string treeTitle("Matched CoMPASS Data");
 	std::string outputType("ROOT");
 	std::string detConfig("");
+	bool fixWaves = false;
 	
 	for(Json::Value::iterator it = config.begin();it!=config.end();it++) {
 		if(false) {  }
@@ -111,6 +112,9 @@ int main(int argc, char** argv)
 		}
 		else if(it.key().asString() == "outputType") {
 			outputType = ToUpper(TString(it->asString().c_str())).Data();
+		}
+		else if(it.key().asString() == "fixWaves") {
+			fixWaves = it->asBool();
 		}
 		else if(it.key().asString() == "detectorConfig") {
 			detConfig = it->asString();
@@ -231,6 +235,7 @@ int main(int argc, char** argv)
 			std::cerr << "ERROR: invalid output type: \"" << outputType << "\", exiting!\n";
 			exit(1);
 		}
+		if(fixWaves) { handler->SetFixWavesTrue(); }
 
 		Long64_t thisEvent;
 		std::vector<std::shared_ptr<Event> > matches;

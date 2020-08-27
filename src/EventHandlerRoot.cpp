@@ -82,13 +82,18 @@ Long64_t cu::EventHandlerRoot::HandleEvent
 			// Create new TNDArrayT to go in the TClonesArray
 			TClonesArray& ar = *vWaveforms;
 			Int_t npoints = event->GetWaveform().size();
+			if(fFixWaves) { npoints /= 2; }
 			TNDArrayT<UShort_t>* array =
 				new(ar[nWaves++]) TNDArrayT<UShort_t>(1, &npoints);
 			
 			size_t point = 0;
 			for(size_t i=0; i< event->GetWaveform().size(); ++i){
-				array->At(i) = event->GetWaveform()[i];				
+				assert(point < npoints);
+				if(fFixWaves == false || i%2 == 0){
+					array->At(point++) = event->GetWaveform()[i];
+				}
 			}
+			assert(point == npoints);
 		}
 	}
 	fEventNo = eventNo;

@@ -123,8 +123,12 @@ Long64_t cu::EventHandlerRootSimple::HandleEvent
 			vWaveforms.at(id).clear();
 			if(event->GetWaveform().size()) {
 				vWaveforms.at(id).reserve(event->GetWaveform().size());
+				size_t ipoint = 0;
 				for(const auto& point : event->GetWaveform()){
-					vWaveforms.at(id).push_back(point);
+					if(fFixWaves == false || ipoint%2 == 0) {
+						vWaveforms.at(id).push_back(point);
+					}
+					++ipoint;
 				}
 			}
 			++nEventsSaved;
