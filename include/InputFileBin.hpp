@@ -22,14 +22,17 @@ namespace compass_unpack {
     virtual Long64_t GetTotalEvents() const { return fSize;   }
     virtual Long64_t GetEventNumber() const { return fEventNo;}
 		virtual bool Good() const { return !(fStreams.empty()); }
-
+			
  private:
 		typedef std::unique_ptr<std::ifstream> Strm_t;
-		std::vector<std::string> GetFilesInDirectory(const std::string& directory);
     std::pair<Long64_t, Long64_t> GetFileSizeAndReopen(size_t i_stream, const char* filename);
     Long64_t ReadEventFromStream(size_t i_strm, Event& event);
     void InsertLocalBuffer(size_t i_stream);
     bool CheckPSD(Strm_t&, const std::string& filename);
+
+ public:
+		static std::vector<std::string> GetFilesInDirectory(const std::string& directory);
+		static std::vector<std::pair<const int, const int> > GetBoardChannelCombos(const std::string& directory);
 		
   private:
     Long64_t  fEventNo;

@@ -14,6 +14,7 @@
 namespace cu = compass_unpack;
 
 namespace {
+
 int extract_channel(const std::string& name) {
 	size_t last_slash = name.rfind("/");
 	size_t last_at = name.rfind("@");
@@ -58,6 +59,20 @@ public:
 };
 
 }
+
+std::vector<std::pair<const int, const int> > cu::InputFileBin::GetBoardChannelCombos(const std::string& directory)
+{
+	auto files = GetFilesInDirectory(directory);
+	std::vector<std::pair<const int, const int> > bc;
+	bc.reserve(files.size());
+	for(const auto& fname : files){
+		const int board = extract_board(fname);
+		const int channel = extract_channel(fname);
+		bc.push_back(std::make_pair(board, channel));
+	}
+	return bc;
+}
+
 
 std::vector<std::string> cu::InputFileBin::GetFilesInDirectory(const std::string& dir){
 	TString files;

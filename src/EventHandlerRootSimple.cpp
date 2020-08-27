@@ -5,6 +5,8 @@
 #include <TNDArray.h>
 #include <TClonesArray.h>
 #include "Event.hpp"
+#include "InputFileBin.hpp"
+#include "InputFileRoot.hpp"
 #include "EventHandlerRootSimple.hpp"
 
 namespace cu = compass_unpack;
@@ -26,11 +28,39 @@ cu::EventHandlerRootSimple::~EventHandlerRootSimple()
 	;
 }
 
+void cu::EventHandlerRootSimple::ReceiveInputFileInformation(
+	const std::type_info& inputType, const std::string& inputFileDir)
+{
+	fInputFileType = inputType.hash_code();
+	fInputFileDir = inputFileDir;
+}
+
 void cu::EventHandlerRootSimple::FigureOutBoardChannelCombos()
 {
-	size_t id = 0;
-	fCombos.emplace(make_pair(0,4), id++);
-	fCombos.emplace(make_pair(0,5), id++);
+	if(fInputFileType == typeid(InputFileRoot).hash_code()) {
+		//
+		// ROOT input file
+		std::unique_ptr<cu::InputFile> in(new InputFileRoot(fInputFileDir));
+		throw (12345);
+		// need to implement
+	}
+	else if(fInputFileType == typeid(InputFileBin).hash_code()) {
+		//
+		// Binary input file
+		std::cout << "\nBinary file -- Found Board Channel Combos:\n";
+		auto boardChannel = InputFileBin::GetBoardChannelCombos(fInputFileDir);
+		for(size_t id=0; id< boardChannel.size(); ++id){
+			fCombos.emplace(make_pair(boardChannel[id].first, boardChannel[id].second), id);
+			cout << "--> " << boardChannel[id].first << ", " << boardChannel[id].second << "\n";
+		}
+		cout << "--------------------\n";
+	}
+	else {
+		//
+		// invalid directory - neither ROOT or binary files found
+		std::cerr << "ERROR: invalid input directory!\n";
+		exit(1);
+	}
 }
 
 void cu::EventHandlerRootSimple::BeginningOfRun()

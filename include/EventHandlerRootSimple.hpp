@@ -2,6 +2,7 @@
 #define CU_EVENT_HANDLER_ROOT_SIMPLE_HPP
 #include <map>
 #include <utility>
+#include <typeinfo>
 #include <TFile.h>
 #include <TTree.h>
 #include "EventHandler.hpp"
@@ -22,7 +23,8 @@ public:
 	(Long64_t eventNo, const std::vector<std::shared_ptr<Event> >& matches);
 	virtual void EndOfEvent();
 	virtual void EndOfRun();
-
+	void ReceiveInputFileInformation(const std::type_info& inputType, const std::string& inputFileDir);
+																	 
 private:
 	EventHandlerRootSimple(const EventHandlerRootSimple&) {}
 	const EventHandlerRootSimple& operator=(const EventHandlerRootSimple&) { return *this; }
@@ -39,6 +41,8 @@ private:
 	std::vector<UInt_t>   vFlags;
 	std::vector<std::vector<UShort_t> > vWaveforms;
 	std::map<std::pair<UShort_t, UShort_t>, std::size_t> fCombos;
+	size_t fInputFileType; //typeid hash code
+	std::string fInputFileDir;
 };
   
 }

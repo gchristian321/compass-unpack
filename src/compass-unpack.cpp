@@ -220,6 +220,9 @@ int main(int argc, char** argv)
 		}
 		else if(outputType == "ROOT_SIMPLE") {
 			handler.reset(new EventHandlerRootSimple(fn.c_str(), treeName,	treeTitle));
+			static_cast<EventHandlerRootSimple*>(handler.get())-> ReceiveInputFileInformation(
+				typeid(*(in.get())), inputFileDir
+				);
 		}
 		else if(outputType == "NPTOOL") {
 			handler.reset(new EventHandlerNptool(fn.c_str(), treeName, treeTitle, detConfig));
