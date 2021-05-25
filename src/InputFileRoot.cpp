@@ -5,6 +5,7 @@
 #include <TChain.h>
 #include <TSystem.h>
 #include <TError.h>
+#include <TObjString.h>
 #include "Event.hpp"
 #include "InputFileRoot.hpp"
 
