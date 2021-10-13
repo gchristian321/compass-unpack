@@ -9,6 +9,8 @@ namespace cu = compass_unpack;
 
 
 cu::SettingsReader::SettingsReader(const TString& runDir):
+	fBoardLabels(nullptr), fBoardDPPTypes(nullptr),
+	fAcqMode(nullptr), fFileFormat(nullptr),
 	fXML()
 {
 	fXMLDoc = fXML.ParseFile(runDir + "/settings.xml");
@@ -60,12 +62,18 @@ TString cu::SettingsReader::GetContentFromAcqMemento(const TString& nodename)
 
 TString cu::SettingsReader::GetAcquisitionMode()
 {
-	return GetContentFromAcqMemento("acquisitionMode");
+	if(fAcqMode.get() == nullptr) {
+		fAcqMode.reset(new TString(GetContentFromAcqMemento("acquisitionMode")));
+	}
+	return *fAcqMode;
 }
 
 TString cu::SettingsReader::GetFileFormat()
 {
-	return GetContentFromAcqMemento("fileFormat");
+	if(fFileFormat.get() == nullptr) {
+		fFileFormat.reset(new TString(GetContentFromAcqMemento("fileFormat")));
+	}
+	return *fFileFormat;
 }
 
 vector<TString> cu::SettingsReader::GetContentFromBoard(const TString& nodename)
@@ -107,14 +115,24 @@ vector<TString> cu::SettingsReader::GetContentFromBoard(const TString& nodename)
 	return retvals;
 }
 
-vector<TString> cu::SettingsReader::GetBoardLabels()
+const vector<TString>& cu::SettingsReader::GetBoardLabels()
 {
-	return GetContentFromBoard("label");
+	if(fBoardLabels.get() == nullptr) {
+		fBoardLabels.reset(
+			new vector<TString>(
+				GetContentFromBoard("label")));
+	}
+	return *fBoardLabels;
 }
 
-vector<TString> cu::SettingsReader::GetBoardDPPTypes()
+const vector<TString>& cu::SettingsReader::GetBoardDPPTypes()
 {
-	return GetContentFromBoard("dppType");
+	if(fBoardDPPTypes.get() == nullptr) {
+		fBoardDPPTypes.reset(
+			new vector<TString>(
+				GetContentFromBoard("dppType")));
+	}
+	return *fBoardDPPTypes;
 }
 
 XMLNodePointer_t
