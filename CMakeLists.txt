@@ -12,16 +12,16 @@ EXECUTE_PROCESS(COMMAND root-config --cflags OUTPUT_VARIABLE ROOT_CXX_FLAGS OUTP
 EXECUTE_PROCESS(COMMAND root-config --libs --glibs OUTPUT_VARIABLE ROOT_LIBRARIES OUTPUT_STRIP_TRAILING_WHITESPACE)
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ROOT_CXX_FLAGS}")
 
-## Look for NPTOOL
-if (DEFINED ENV{NPTOOL})
-  message("Nptool found! Enabling nptool output...")
-  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I$ENV{NPTOOL}/NPLib/include")
-  set (NPTOOL_LIBS "-L$ENV{NPTOOL}/NPLib/lib -lNPCore -lNPInitialConditions -lNPMDM -lNPFPDTamu")
-  add_definitions(-DHAVE_NPLIB)
-else()
-  message("Nptool not found! Disabling nptool output...")
-  set (NPTOOL_LIBS "")
-endif()
+# ## Look for NPTOOL
+# if (DEFINED ENV{NPTOOL})
+#   message("Nptool found! Enabling nptool output...")
+#   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I$ENV{NPTOOL}/NPLib/include")
+#   set (NPTOOL_LIBS "-L$ENV{NPTOOL}/NPLib/lib -lNPCore -lNPInitialConditions -lNPMDM -lNPFPDTamu")
+#   add_definitions(-DHAVE_NPLIB)
+# else()
+#   message("Nptool not found! Disabling nptool output...")
+#   set (NPTOOL_LIBS "")
+# endif()
   
 
 ## Set up c++ flags
