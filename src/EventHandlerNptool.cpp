@@ -1,5 +1,6 @@
 #ifdef HAVE_NPLIB // only compile if we have nptool dependence
 #include <iostream>
+#include <sstream>
 #include <TString.h>
 #include <TObjString.h>
 #include <TObjArray.h>
@@ -74,6 +75,7 @@ Long64_t cu::EventHandlerNptool::HandleEvent
 			cerr << "WARNING: channel map not found for (board, channel): (" << event->fBoard << ", " << event->fChannel << ")\n";
 		}
 	}
+	return matches.size();
 }
 
 void cu::EventHandlerNptool::EndOfEvent()
