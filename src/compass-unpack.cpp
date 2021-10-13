@@ -6,6 +6,7 @@
 #include <TROOT.h>
 #include <TChain.h>
 #include <TSystem.h>
+#include <TString.h>
 #include "json/json.h"
 #include "Event.hpp"
 #include "LockGuard.hpp"
@@ -16,6 +17,7 @@
 #include "EventHandlerRoot.hpp"
 #include "EventHandlerRootSimple.hpp"
 #include "EventHandlerNptool.hpp"
+#include "SettingsReader.hpp"
 
 namespace cu = compass_unpack;
 using namespace compass_unpack;
@@ -126,6 +128,8 @@ int main(int argc, char** argv)
 	std::string inputFileDir =
 		Form("%s/UNFILTERED", runDir.c_str());
 
+	SettingsReader settings(runDir.c_str());
+
 	if(std::string(gSystem->DirName(outputFile.c_str())) == ".") {
 		// no directory specified, put in run dir
 		std::string of = outputFile;
@@ -136,10 +140,18 @@ int main(int argc, char** argv)
 	if(true) {
 		// first try a ROOT input
 		in.reset(new InputFileRoot(inputFileDir));
+		if(in->Good() && settings.GetFileFormat() != "ROOT") {
+			throw runtime_error(
+				string("Deduced ROOT file type but settings.xml says ") + settings.GetFileFormat().Data());
+		}			
 	}
 	if(!in->Good()) {
 		// then try binary input
-		in.reset(new InputFileBin(inputFileDir));
+		in.reset(new InputFileBin(inputFileDir, settings));
+		if(in->Good() && settings.GetFileFormat() != "BIN") {
+			throw runtime_error(
+				string("Deduced BIN file type but settings.xml says ") + settings.GetFileFormat().Data());
+		}			
 	}
 	if(!in->Good()) {
 		// invalid directory - neither ROOT or binary files found

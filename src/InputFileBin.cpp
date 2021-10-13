@@ -9,8 +9,9 @@
 #include <TError.h>
 #include <TObjString.h>
 #include "Event.hpp"
+#include "SettingsReader.hpp"
 #include "InputFileBin.hpp"
-
+using namespace std;
 
 namespace cu = compass_unpack;
 
@@ -34,8 +35,23 @@ int extract_board(const std::string& name) {
 		last_slash < name.size() ? name.substr(1+last_slash) : name;
 
 	size_t first_pound = name1.find("#");
-	size_t first_dash = name1.find("-");
-	std::string board_str = name1.substr(first_pound+1,first_dash-first_pound-1);
+	string board_str = "";
+	bool have_first(false),have_second(false);
+	for(size_t i=first_pound; i< name1.size(); ++i) {
+		if(name1[i] == '_') { break; }
+		if(have_second) { board_str.push_back(name1[i]); }
+		if(name1[i] == '-') {
+			if(have_first == false) { have_first = true; }
+			else { have_second = true; }
+		}
+	}
+
+	// GAC -- Old way of doing this, always extracts zero //
+	// size_t first_dash = name1.find("-");
+	// string name2 = name1.substr(first_dash+1).find("-");
+	// size_t second_dash = 
+	// size_t first_underscore = name1.
+	// std::string board_str = name1.substr(first_pound+1,first_dash-first_pound-1);
 
 	return atoi(board_str.c_str());
 }
@@ -180,9 +196,23 @@ bool cu::InputFileBin::CheckPSD(Strm_t& fstrm, const std::string& filename)
 	exit(1);
 }
 
-cu::InputFileBin::InputFileBin(const std::string& run_directory):
+cu::InputFileBin::InputFileBin(const std::string& run_directory, SettingsReader& settings):
 	fEventNo(0), fSize(0), fAvgEventSize(0), fDoneStreams(0)
 {
+	if(settings.GetAcquisitionMode() == "LIST") {
+		fWaves = false;
+	}
+	else if(settings.GetAcquisitionMode() == "WAVES") {
+		fWaves = true;
+	}
+	else {
+		throw invalid_argument(
+			"InputFileBin (ctor): Couldn't understand setings acquisition mode!");
+	}
+
+	fBoardLabels = settings.GetBoardLabels();
+	fBoardDPPTypes = settings.GetBoardDPPTypes();
+	
 	auto FileIsEmpty = [](const std::string& fname){
 		std::ifstream ifs(fname.c_str());
 		std::streampos fsize = ifs.tellg();
@@ -202,7 +232,28 @@ cu::InputFileBin::InputFileBin(const std::string& run_directory):
     fStreams.emplace_back
 			(std::unique_ptr<std::ifstream>
 			 (new std::ifstream(f.c_str(), std::ios::binary)));
-		fPSD.push_back(CheckPSD(fStreams.back(), f));
+
+		{
+			int boardFromFile = extract_board(f);
+			for(size_t j=0; j< fBoardLabels.size(); ++j) {
+				int boardFromLabel = extract_board(fBoardLabels.at(j).Data());
+				if(boardFromFile == boardFromLabel) {
+					if(fBoardDPPTypes.at(j) == "DPP_PSD") {
+						fPSD.push_back(true);
+					}
+					else if(fBoardDPPTypes.at(j) == "DPP_PHA") {
+						fPSD.push_back(false);
+					}
+					else {
+						throw std::runtime_error(
+							string("Don't recognize DPP Type: ") + fBoardDPPTypes.at(j).Data());
+					}
+					break;
+				}
+			}
+		}
+		
+		//fPSD.push_back(CheckPSD(fStreams.back(), f));
 														
     std::pair<Long64_t,Long64_t> sizes =
       GetFileSizeAndReopen(ifile, f.c_str());
