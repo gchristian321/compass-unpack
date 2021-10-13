@@ -1,3 +1,4 @@
+#include <set>
 #include <iostream>
 #include <cassert>
 #include <TFile.h>
@@ -47,13 +48,20 @@ void cu::EventHandlerRootSimple::FigureOutBoardChannelCombos()
 	else if(fInputFileType == typeid(InputFileBin).hash_code()) {
 		//
 		// Binary input file
+		std::set<Int_t> theBoards;
 		std::cout << "\nBinary file -- Found Board Channel Combos:\n";
 		auto boardChannel = InputFileBin::GetBoardChannelCombos(fInputFileDir);
 		for(size_t id=0; id< boardChannel.size(); ++id){
-			fCombos.emplace(make_pair(boardChannel[id].first, boardChannel[id].second), id);
+			theBoards.insert(boardChannel[id].first);
+//			fCombos.emplace(make_pair(boardChannel[id].first, boardChannel[id].second), id);
+			fCombos.emplace(make_pair(0, boardChannel[id].second), id); // todo fix this! --> need to recognize board # consistently!
 			cout << "--> " << boardChannel[id].first << ", " << boardChannel[id].second << "\n";
 		}
 		cout << "--------------------\n";
+		if(theBoards.size() != 1) {
+			throw std::invalid_argument(
+				"ERROR: can only use ROOT_SIMPLE with a single board (need to fix this...)!");
+		}
 	}
 	else {
 		//
@@ -83,8 +91,8 @@ void cu::EventHandlerRootSimple::BeginningOfRun()
 		
 		fTree->Branch(Form("E_%i_%i",board,channel),  &(vEnergy.at(id)), Form("E_%i_%i/s",board,channel));
 		fTree->Branch(Form("ES_%i_%i",board,channel), &(vEnergyShort.at(id)), Form("ES_%i_%i/s",board,channel));
-		fTree->Branch(Form("T_%i_%i",board,channel),  &(vTimestamp.at(id)), Form("T_%i_%i/s",board,channel));
-		fTree->Branch(Form("Flg_%i_%i",board,channel),&(vFlags.at(id)), Form("Flg_%i_%i/s",board,channel));
+		fTree->Branch(Form("T_%i_%i",board,channel),  &(vTimestamp.at(id)), Form("T_%i_%i/L",board,channel));
+		fTree->Branch(Form("Flg_%i_%i",board,channel),&(vFlags.at(id)), Form("Flg_%i_%i/I",board,channel));
 		fTree->Branch(Form("W_%i_%i",board,channel),  &(vWaveforms.at(id)));
 	}
 }
