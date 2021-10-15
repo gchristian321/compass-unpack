@@ -17,6 +17,7 @@
 #include "EventHandlerRoot.hpp"
 #include "EventHandlerRootSimple.hpp"
 #include "EventHandlerNptool.hpp"
+#include "EventHandlerPlugin.hpp"
 #include "SettingsReader.hpp"
 
 namespace cu = compass_unpack;
@@ -80,12 +81,14 @@ int main(int argc, char** argv)
   configStream.close();
 
 	std::string input_dir;
-	int runnum,nthreads;
+	int runnum, nthreads(1);
 	Long64_t kMatchWindow = 20e6;
 	std::string outputFile("matched.root");
 	std::string treeName("MatchedData");
 	std::string treeTitle("Matched CoMPASS Data");
 	std::string outputType("ROOT");
+	std::string pluginFile("");
+	std::string channelMapFile("");
 	std::string detConfig("");
 	bool fixWaves = false;
 	
@@ -115,6 +118,12 @@ int main(int argc, char** argv)
 		else if(it.key().asString() == "outputType") {
 			outputType = ToUpper(TString(it->asString().c_str())).Data();
 		}
+		else if(it.key().asString() == "pluginFile") {
+			pluginFile = it->asString();
+		}
+		else if(it.key().asString() == "channelMapFile") {
+			channelMapFile = it->asString();
+		}
 		else if(it.key().asString() == "fixWaves") {
 			fixWaves = it->asBool();
 		}
@@ -123,6 +132,14 @@ int main(int argc, char** argv)
 		}
 	}
 
+	if(nthreads != 1) {
+		std::stringstream err;
+		err << "ERROR: " << nthreads << " specified in config file, but"
+				<< " multi-threding is currently NOT WORKING. Please set "
+				<< "\"numThreads\" to 1 and try again.";
+		throw std::invalid_argument(err.str().c_str());
+	}
+	
 	std::string runDir =
 		Form("%s/DAQ/run_%i", input_dir.c_str(), runnum);
 	std::string inputFileDir =
@@ -230,8 +247,7 @@ int main(int argc, char** argv)
 		
 		std::unique_ptr<EventHandler> handler(nullptr);
 
-		if(false) {  }
-		else if(outputType == "ROOT") {
+		if     (outputType == "ROOT") {
 			handler.reset(new EventHandlerRoot(fn.c_str(), treeName,	treeTitle));
 		}
 		else if(outputType == "ROOT_SIMPLE") {
@@ -239,13 +255,36 @@ int main(int argc, char** argv)
 			static_cast<EventHandlerRootSimple*>(handler.get())-> ReceiveInputFileInformation(
 				typeid(*(in.get())), inputFileDir
 				);
+			if(!channelMapFile.empty()) {
+				static_cast<EventHandlerRootSimple*>(handler.get())->
+												 ReadChannelMapFile(channelMapFile);
+			}
 		}
 		else if(outputType == "NPTOOL") {
+			throw invalid_argument(
+				"NPTOOL outputType no longer supported!");
 			handler.reset(new EventHandlerNptool(fn.c_str(), treeName, treeTitle, detConfig));
 		}
+		else if(outputType == "PLUGIN") {
+			if(pluginFile.empty()) {
+				throw std::invalid_argument(
+					"ERROR in json file: PLUGIN output type chosen, but no "
+					"\"pluginFile\" specified."
+					);
+			}
+			handler.reset(new EventHandlerPlugin(pluginFile,fn.c_str(), treeName,	treeTitle));
+			static_cast<EventHandlerRootSimple*>(handler.get())-> ReceiveInputFileInformation(
+				typeid(*(in.get())), inputFileDir
+				);
+			if(!channelMapFile.empty()) {
+				static_cast<EventHandlerRootSimple*>(handler.get())->
+												 ReadChannelMapFile(channelMapFile);
+			}
+		}
 		else {
-			std::cerr << "ERROR: invalid output type: \"" << outputType << "\", exiting!\n";
-			exit(1);
+			std::stringstream err;
+			err << "ERROR: invalid output type: \"" << outputType << "\", exiting!";
+			throw std::runtime_error(err.str().c_str());
 		}
 		if(fixWaves) { handler->SetFixWavesTrue(); }
 

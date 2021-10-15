@@ -1,6 +1,7 @@
 #ifndef CU_EVENT_HANDLER_ROOT_SIMPLE_HPP
 #define CU_EVENT_HANDLER_ROOT_SIMPLE_HPP
 #include <map>
+#include <array>
 #include <utility>
 #include <typeinfo>
 #include <TFile.h>
@@ -24,11 +25,16 @@ public:
 	virtual void EndOfEvent();
 	virtual void EndOfRun();
 	void ReceiveInputFileInformation(const std::type_info& inputType, const std::string& inputFileDir);
-																	 
-private:
+	void ReadChannelMapFile(const std::string& filename);
+	void SetSaveAsDouble(Bool_t save) { fSaveAsDouble = save; }
+	
+protected:
 	EventHandlerRootSimple(const EventHandlerRootSimple&) {}
 	const EventHandlerRootSimple& operator=(const EventHandlerRootSimple&) { return *this; }
 	void FigureOutBoardChannelCombos();
+
+protected:
+	std::map<std::string, double> fEventData;
 	
 private:
 	std::string fFilename, fTreename, fTreetitle;
@@ -43,6 +49,9 @@ private:
 	std::map<std::pair<UShort_t, UShort_t>, std::size_t> fCombos;
 	size_t fInputFileType; //typeid hash code
 	std::string fInputFileDir;
+	std::map<std::pair<UShort_t, UShort_t>, std::string> fChannelMap;
+	std::map<size_t, std::array<std::string,5> > fBranchNames;
+	Bool_t fSaveAsDouble;
 };
   
 }
