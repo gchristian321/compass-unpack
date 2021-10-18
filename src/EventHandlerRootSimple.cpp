@@ -192,14 +192,14 @@ Long64_t cu::EventHandlerRootSimple::HandleEvent
 					++ipoint;
 				}
 			}
-			if(fSaveAsDouble) {
-				fEventData[fBranchNames[id][0]] = vEnergy.at(id);
-				fEventData[fBranchNames[id][1]] = vEnergyShort.at(id);
-				fEventData[fBranchNames[id][2]] = vTimestamp.at(id);
-				fEventData[fBranchNames[id][3]] = vFlags.at(id);
-//				fEventData[fBranchNames[id][4]] = vWaveform.at(id);
-			}
 			++nEventsSaved;
+		}
+		if(fSaveAsDouble) {
+			fEventData[fBranchNames[id][0]] = vEnergy.at(id);
+			fEventData[fBranchNames[id][1]] = vEnergyShort.at(id);
+			fEventData[fBranchNames[id][2]] = vTimestamp.at(id);
+			fEventData[fBranchNames[id][3]] = vFlags.at(id);
+//				fEventData[fBranchNames[id][4]] = vWaveform.at(id);
 		}
 	}
 	return nEventsSaved;
