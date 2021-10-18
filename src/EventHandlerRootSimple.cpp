@@ -194,7 +194,12 @@ Long64_t cu::EventHandlerRootSimple::HandleEvent
 			}
 			++nEventsSaved;
 		}
-		if(fSaveAsDouble) {
+	}
+
+	// Store data for downstream analysis
+	if(fSaveAsDouble) {
+		for(const auto& combo : fCombos) {
+			const size_t id = combo.second;		
 			fEventData[fBranchNames[id][0]] = vEnergy.at(id);
 			fEventData[fBranchNames[id][1]] = vEnergyShort.at(id);
 			fEventData[fBranchNames[id][2]] = vTimestamp.at(id);
