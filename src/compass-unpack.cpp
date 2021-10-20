@@ -132,6 +132,8 @@ int main(int argc, char** argv)
 		}
 	}
 
+	cout << "Match Window: " << kMatchWindow << " us" << endl;
+	
 	if(nthreads != 1) {
 		std::stringstream err;
 		err << "ERROR: " << nthreads << " specified in config file, but"
