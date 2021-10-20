@@ -132,7 +132,7 @@ int main(int argc, char** argv)
 		}
 	}
 
-	cout << "Match Window: " << kMatchWindow << " us" << endl;
+	cout << "Match Window: " << kMatchWindow/1e6 << " us" << endl;
 	
 	if(nthreads != 1) {
 		std::stringstream err;
